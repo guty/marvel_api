@@ -5,8 +5,8 @@ require 'json'
 module MarvelApi
   class Base
     BASE_URL = 'https://gateway.marvel.com/v1/public'.freeze
-    API_PUBLIC_KEY = '8cd912e48edb1f92f33a672aaca82dda'.freeze
-    API_PRIVATE_KEY = '811d7e28093bb09800fd1ddafa7ba191ade52010'.freeze
+    API_PUBLIC_KEY = 'YOUR_PUBLIC_API_KEY'.freeze
+    API_PRIVATE_KEY = 'YOUR_PRIVATE_API_KEY'.freeze
 
     attr_writer :endpoint
 
