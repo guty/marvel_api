@@ -1,32 +1,70 @@
+# frozen_string_literal: true
+
 module MarvelApi
   class Character
     def initialize
-      @base = Base.new
-      @base.endpoint = '/characters'
+      @base = Base.new('/characters', records_per_page: 5)
     end
 
-    def all
-      @base.get
+    def all(filters = '')
+      list(filters: filters)
     end
 
     def find(id)
-      @base.get(filters: id)
+      base.get(params: { id: id })
     end
 
     def comics(id)
-      @base.get(filters: id, route: 'comics')
+      list(id: id, route: 'comics')
     end
 
     def events(id)
-      @base.get(filters: id, route: 'events')
+      list(id: id, route: 'events')
     end
 
     def series(id)
-      @base.get(filters: id, route: 'series')
+      list(id: id, route: 'series')
     end
 
     def stories(id)
-      @base.get(filters: id, route: 'stories')
+      list(id: id, route: 'stories')
+    end
+
+    private
+
+    attr_reader :base
+
+    def list(**args)
+      params = {}
+      (params[:filters] = args[:filters]) if args.key?(:filters)
+      (params[:id] = args[:id]) if args.key?(:id)
+      (params[:route] = args[:route]) if args.key?(:route)
+
+      recordset = base.get(params: params)
+
+      if recordset[:pages] && recordset[:pages].positive?
+        data = []
+        data[0] = recordset[:results]
+
+        (2..recordset[:pages])
+          .map do |page|
+            current_page = page - 1
+            new_offset = current_page * base.records_per_page
+
+            Thread.new do
+              data[current_page] = paginate(new_offset, params)[:results]
+            end
+          end
+          .map(&:value)
+
+        data
+      else
+        recordset
+      end
+    end
+
+    def paginate(offset, params)
+      base.get(offset: offset, params: params)
     end
   end
 end
