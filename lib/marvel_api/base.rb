@@ -9,8 +9,9 @@ module MarvelApi
   class Base
     BASE_URL = 'https://gateway.marvel.com/v1/public'
 
-    API_PUBLIC_KEY = '8cd912e48edb1f92f33a672aaca82dda'
-    API_PRIVATE_KEY = '811d7e28093bb09800fd1ddafa7ba191ade52010'
+    API_PUBLIC_KEY = 'YOUR_API_PUBLIC_KEY'
+    API_PRIVATE_KEY = 'YOUR_API_PRIVATE_KEY'
+
     RECORDS_PER_PAGE = 20.0
 
     attr_reader :records_per_page
@@ -112,7 +113,7 @@ module MarvelApi
       endpoint_params.push(
         [:ts, timestamp],
         [:apikey, API_PUBLIC_KEY],
-        [:hash, generate_hash(timestamp)]
+        [:hash, generate_hash(timestamp)],
       )
 
       endpoint_params
@@ -130,7 +131,7 @@ module MarvelApi
       if !total_records.nil? && total_records.positive?
         compute_pages = total_records / records_per_page
         (compute_pages = compute_pages.floor + 1) unless (compute_pages % 1)
-                                                         .zero?
+          .zero?
         pages = compute_pages.to_i
       end
 
