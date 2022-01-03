@@ -58,3 +58,4 @@ build-iPhoneSimulator/
 /test/tmp/
 /test/version_tmp/
 /tmp/
+/test/fixtures/vcr_cassettes/*.yml

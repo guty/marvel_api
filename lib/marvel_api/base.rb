@@ -5,16 +5,17 @@ require 'digest'
 require 'json'
 
 module MarvelApi
+  # This class proccess API requests and responses
   class Base
     BASE_URL = 'https://gateway.marvel.com/v1/public'
 
-    API_PUBLIC_KEY = 'YOUR_API_PUBLIC_KEY'
-    API_PRIVATE_KEY = 'YOUR_API_PRIVATE_KEY'
+    API_PUBLIC_KEY = '8cd912e48edb1f92f33a672aaca82dda'
+    API_PRIVATE_KEY = '811d7e28093bb09800fd1ddafa7ba191ade52010'
     RECORDS_PER_PAGE = 20.0
 
     attr_reader :records_per_page
 
-    def initialize(endpoint, **kargs)
+    def initialize(endpoint = '', **kargs)
       @endpoint = endpoint
       @paginate = true
       @params = ''
@@ -52,9 +53,7 @@ module MarvelApi
 
         if !response.key?(:error)
           if paginate
-            total_records = response.dig(:data, :total)
-            response[:data][:pages] = num_pages(total_records)
-
+            response[:data][:pages] = num_pages(response.dig(:data, :total))
             response[:data]
           else
             response[:data][:results].first
@@ -67,17 +66,23 @@ module MarvelApi
       end
     end
 
+    def valid_response(response)
+      JSON.parse(response.body, symbolize_names: true)
+    rescue JSON::ParserError
+      { error: 'JSON format error' }
+    end
+
     def api_url(args)
       self.params = args[:params]
-      self.offset = args.key?(:offset) ? args[:offset] : 0
-      api_url = BASE_URL + endpoint
+      self.offset = args[:offset] if args.key?(:offset)
+      api_url = "#{BASE_URL}#{endpoint}"
 
       if params.key?(:id) && !params[:id].nil?
-        api_url += "/#{params[:id]}"
+        api_url << "/#{params[:id]}"
         self.paginate = false
 
         if params.key?(:route) && !params[:route].nil?
-          api_url += "/#{params[:route]}"
+          api_url << "/#{params[:route]}"
           self.paginate = true
         end
       end
@@ -96,16 +101,18 @@ module MarvelApi
         filters +=
           !filters.empty? ? pagination_params.prepend(',') : pagination_params
 
-        endpoint_params =
-          filters.to_s.split(',').map { |filter| filter.split('=') }
+        filters
+          .to_s
+          .split(',')
+          .map { |filter| endpoint_params << filter.split('=') }
       end
 
-      timestamp = Time.now.to_i.to_s
+      timestamp = '1641187239' # Time.now.to_i.to_s
 
       endpoint_params.push(
         [:ts, timestamp],
         [:apikey, API_PUBLIC_KEY],
-        [:hash, generate_hash(timestamp)],
+        [:hash, generate_hash(timestamp)]
       )
 
       endpoint_params
@@ -117,19 +124,13 @@ module MarvelApi
       @api_hash.to_s
     end
 
-    def valid_response(response)
-      JSON.parse(response.body, symbolize_names: true)
-    rescue JSON::ParserError
-      { error: 'JSON format error' }
-    end
-
     def num_pages(total_records)
       pages = 0
 
       if !total_records.nil? && total_records.positive?
         compute_pages = total_records / records_per_page
         (compute_pages = compute_pages.floor + 1) unless (compute_pages % 1)
-          .zero?
+                                                         .zero?
         pages = compute_pages.to_i
       end
 

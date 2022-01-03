@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module MarvelApi
+  # This class handles requests for Marvel characters
   class Character
     def initialize
       @base = Base.new('/characters', records_per_page: 5)
@@ -36,26 +37,29 @@ module MarvelApi
 
     def list(**args)
       params = {}
-      (params[:filters] = args[:filters]) if args.key?(:filters)
-      (params[:id] = args[:id]) if args.key?(:id)
-      (params[:route] = args[:route]) if args.key?(:route)
+
+      params.store(:filters, args[:filters]) if args.key?(:filters)
+      params.store(:id, args[:id]) if args.key?(:id)
+      params.store(:route, args[:route]) if args.key?(:route)
 
       recordset = base.get(params: params)
 
-      if recordset[:pages] && recordset[:pages].positive?
+      if recordset[:pages]&.positive?
         data = []
-        data[0] = recordset[:results]
+        data.insert(0, recordset[:results])
 
-        (2..recordset[:pages])
-          .map do |page|
-            current_page = page - 1
-            new_offset = current_page * base.records_per_page
+        if recordset[:pages] > 1
+          (2..recordset[:pages])
+            .map do |page|
+              current_page = page - 1
+              new_offset = current_page * base.records_per_page
 
-            Thread.new do
-              data[current_page] = paginate(new_offset, params)[:results]
+              Thread.new do
+                data[current_page] = paginate(new_offset, params)[:results]
+              end
             end
-          end
-          .map(&:value)
+            .map(&:value)
+        end
 
         data
       else
